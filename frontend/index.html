@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0b1020">
+  <title>DeFiLab | Lending & Borrowing Simulator</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell">
+
+    <header class="topbar">
+      <a class="brand" href="#" aria-label="DeFiLab home">
+        <span class="brand-mark">D</span>
+        <span>DeFi<span class="brand-light">Lab</span></span>
+      </a>
+
+      <div class="topbar-right">
+        <span class="demo-pill">
+          <span class="dot"></span>
+          Local test chain
+        </span>
+        <button id="claimFundsBtn" class="button button-primary button-small" type="button">
+          Claim demo funds
+        </button>
+        <button id="resetBtn" class="button button-ghost button-small" type="button">
+          Refresh position
+        </button>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div class="hero-content">
+          <p class="eyebrow">DECENTRALIZED FINANCE · LEARNING SANDBOX</p>
+          <h1>Lending &amp; borrowing,<br><span>made understandable.</span></h1>
+          <p class="hero-copy">
+            Supply virtual assets, use them as collateral, and explore how debt
+            and interest affect your position.
+          </p>
+        </div>
+
+        <div class="hero-note">
+          <span class="note-icon">ⓘ</span>
+          <div>
+            <strong>Educational simulator</strong>
+            <p>Local Hardhat blockchain only. No real cryptocurrency or external wallet.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="connection-panel" aria-live="polite">
+        <div>
+          <strong id="connectionLabel" class="connection-label disconnected">
+            Checking local blockchain...
+          </strong>
+          <p id="connectionDetail">
+            Connecting to the local API at 127.0.0.1:3001.
+          </p>
+        </div>
+        <span class="local-only-tag">LOCAL ONLY</span>
+      </section>
+
+      <section class="stat-grid" aria-label="Position summary">
+
+        <article class="stat-card">
+          <div class="stat-label">Total supplied value <span>↗</span></div>
+          <div id="suppliedValue" class="stat-value">$0.00</div>
+          <p class="stat-foot">Assets deposited in the protocol</p>
+        </article>
+
+        <article class="stat-card">
+          <div class="stat-label">Outstanding debt <span>↘</span></div>
+          <div id="debtValue" class="stat-value">$0.00</div>
+          <p id="debtFoot" class="stat-foot">No outstanding borrowing</p>
+        </article>
+
+        <article class="stat-card">
+          <div class="stat-label">Available to borrow <span>＋</span></div>
+          <div id="availableValue" class="stat-value">$0.00</div>
+          <p class="stat-foot">Based on collateral factor</p>
+        </article>
+
+        <article class="stat-card health-stat">
+          <div class="stat-label">Health factor <span>♡</span></div>
+          <div id="healthValue" class="stat-value">∞</div>
+          <div class="health-track">
+            <span id="healthBar"></span>
+          </div>
+          <p id="healthFoot" class="stat-foot">No active debt</p>
+        </article>
+
+      </section>
+
+      <section class="main-grid">
+
+        <section class="panel actions-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">INTERACT</p>
+              <h2>Manage your position</h2>
+            </div>
+            <span class="live-label">Contract-backed data</span>
+          </div>
+
+          <div class="tabs" role="tablist" aria-label="Transaction type">
+            <button class="tab active" data-tab="supply" role="tab" aria-selected="true">Supply</button>
+            <button class="tab" data-tab="borrow" role="tab" aria-selected="false">Borrow</button>
+            <button class="tab" data-tab="repay" role="tab" aria-selected="false">Repay</button>
+            <button class="tab" data-tab="withdraw" role="tab" aria-selected="false">Withdraw</button>
+          </div>
+
+          <form id="actionForm" novalidate>
+            <div class="field-row">
+              <label for="assetSelect">Asset</label>
+              <select id="assetSelect">
+                <option value="USDC">USD Coin (USDC)</option>
+                <option value="ETH">Ethereum (ETH)</option>
+              </select>
+            </div>
+
+            <div class="field-row">
+              <label for="amountInput">Amount</label>
+              <div class="amount-wrap">
+                <input
+                  id="amountInput"
+                  type="number"
+                  min="0"
+                  step="any"
+                  placeholder="0.00"
+                  required
+                >
+                <span id="assetUnit">USDC</span>
+              </div>
+
+              <div class="input-meta">
+                <span id="amountHint">Enter an amount to supply</span>
+                <button type="button" id="maxBtn" class="text-button">Use max</button>
+              </div>
+            </div>
+
+            <div id="actionInfo" class="info-box">
+              <span>ⓘ</span>
+              <p>Supply your demo assets to the protocol. Supplied assets count toward collateral.</p>
+            </div>
+
+            
+            <button type="submit" id="submitBtn" class="button button-primary button-wide">
+              Supply assets <span>→</span>
+            </button>
+
+            <button
+              type="button"
+              id="repayAllBtn"
+              class="button button-ghost button-wide"
+              hidden
+            >
+              Repay all outstanding debt
+            </button>
+
+
+            <p class="form-disclaimer">
+              Transactions are recorded only on your local Hardhat test blockchain.
+              No real funds are used.
+            </p>
+          </form>
+
+          <div id="message" class="message" role="status" aria-live="polite" hidden></div>
+        </section>
+
+        <section class="panel portfolio-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">YOUR ACCOUNT</p>
+              <h2>Asset balances</h2>
+            </div>
+            <span class="avatar">DL</span>
+          </div>
+
+          <div class="balance-section">
+            <div class="section-caption">
+              Wallet balance <span>Available to use</span>
+            </div>
+
+            <div class="asset-line">
+              <div class="coin coin-usdc">$</div>
+              <div class="asset-name">
+                <strong>USD Coin</strong>
+                <span>USDC · $1.00</span>
+              </div>
+              <div class="asset-amount">
+                <strong id="walletUSDC">0.00</strong>
+                <span id="walletUSDCValue">$0.00</span>
+              </div>
+            </div>
+
+            <div class="asset-line">
+              <div class="coin coin-eth">◆</div>
+              <div class="asset-name">
+                <strong>Ethereum</strong>
+                <span>ETH · $2,000.00</span>
+              </div>
+              <div class="asset-amount">
+                <strong id="walletETH">0.0000</strong>
+                <span id="walletETHValue">$0.00</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="balance-section supplied-section">
+            <div class="section-caption">
+              Supplied to protocol <span>Collateral balance</span>
+            </div>
+
+            <div class="asset-line">
+              <div class="coin coin-usdc">$</div>
+              <div class="asset-name">
+                <strong>USD Coin</strong>
+                <span>USDC supplied</span>
+              </div>
+              <div class="asset-amount">
+                <strong id="suppliedUSDC">0.00</strong>
+                <span id="suppliedUSDCValue">$0.00</span>
+              </div>
+            </div>
+
+            <div class="asset-line">
+              <div class="coin coin-eth">◆</div>
+              <div class="asset-name">
+                <strong>Ethereum</strong>
+                <span>ETH supplied</span>
+              </div>
+              <div class="asset-amount">
+                <strong id="suppliedETH">0.0000</strong>
+                <span id="suppliedETHValue">$0.00</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="debt-card">
+            <div class="debt-icon">↘</div>
+            <div class="debt-description">
+              <strong>Borrowed USDC</strong>
+              <span id="borrowedDetail">No outstanding debt</span>
+            </div>
+            <strong id="borrowedUSDC">0.00 USDC</strong>
+          </div>
+        </section>
+
+      </section>
+
+      <section class="bottom-grid">
+
+        <section class="panel risk-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">RISK MONITOR</p>
+              <h2>Collateral &amp; risk</h2>
+            </div>
+            <span id="riskBadge" class="risk-badge safe">Safe</span>
+          </div>
+
+          <div class="collateral-top">
+            <span>Collateral value</span>
+            <strong id="collateralValue">$0.00</strong>
+          </div>
+
+          <div class="progress-track">
+            <span id="collateralBar"></span>
+          </div>
+
+          <div class="range-labels">
+            <span>$0</span>
+            <span id="maxBorrowLabel">$0 max borrow</span>
+          </div>
+
+          <div class="risk-details">
+            <div><span>Collateral factor</span><strong>75%</strong></div>
+            <div><span>Liquidation threshold</span><strong>80%</strong></div>
+            <div><span>Borrow APR (simulated)</span><strong>5.00%</strong></div>
+            <div><span>Supply APR (simulated)</span><strong>2.00%</strong></div>
+          </div>
+
+          <p class="risk-explainer" id="riskExplainer">
+            Supply assets to create collateral before borrowing. A higher debt
+            relative to collateral means greater liquidation risk.
+          </p>
+        </section>
+
+        <section class="panel activity-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">TRANSACTION LOG</p>
+              <h2>Recent activity</h2>
+            </div>
+            <button id="clearLogBtn" class="text-button" type="button">Clear log</button>
+          </div>
+
+          <div id="activityList" class="activity-list">
+            <div class="empty-state">
+              <span>↻</span>
+              <strong>No activity yet</strong>
+              <p>Your confirmed local transactions will appear here.</p>
+            </div>
+          </div>
+        </section>
+
+      </section>
+
+      <section class="method-note">
+        <div class="method-icon">i</div>
+        <div>
+          <strong>How this simulator calculates risk</strong>
+          <p>
+            Maximum borrow = collateral value × 75%. Health factor =
+            (collateral value × 80%) ÷ debt. A health factor above 1.0 is above
+            the simplified liquidation threshold; at or below 1.0, the
+            position is considered at risk. This is an educational model,
+            not a complete DeFi protocol.
+          </p>
+        </div>
+      </section>
+
+      <footer>
+        <span>DeFiLab · ISE Assignment Prototype</span>
+        <span>Local Hardhat test chain · No real funds</span>
+      </footer>
+
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
